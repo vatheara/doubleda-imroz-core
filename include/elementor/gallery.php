@@ -53,6 +53,7 @@ class Imroz_Elementor_Widget_Gallery extends Widget_Base
         $repeater->add_control(
             'images',
             [
+                'label' => esc_html__('Thumbnail', 'imroz'),
                 'type' => Controls_Manager::MEDIA,
                 'default' => [
                     'url' => Utils::get_placeholder_image_src(),
@@ -62,6 +63,19 @@ class Imroz_Elementor_Widget_Gallery extends Widget_Base
                 ]
             ]
         );
+        $repeater->add_control(
+			'carousel',
+			[
+				'label' => esc_html__( 'Add Images', 'imroz' ),
+				'type' => \Elementor\Controls_Manager::GALLERY,
+				'default' => [],
+				'show_label' => false,
+				'dynamic' => [
+					'active' => true,
+				],
+			]
+		);
+
         $repeater->add_control(
             'title',
             [
@@ -129,6 +143,20 @@ class Imroz_Elementor_Widget_Gallery extends Widget_Base
                 ]
             ]
         );
+        
+        $this->add_control(
+			'open_lightbox',
+			[
+				'label' => esc_html__( 'Lightbox', 'elementor' ),
+				'type' => Controls_Manager::SELECT,
+				'default' => 'default',
+				'options' => [
+					'default' => esc_html__( 'Default', 'elementor' ),
+					'yes' => esc_html__( 'Yes', 'elementor' ),
+					'no' => esc_html__( 'No', 'elementor' ),
+				],
+			]
+		);
 
         $this->add_control(
             'title_tag',
@@ -253,11 +281,9 @@ class Imroz_Elementor_Widget_Gallery extends Widget_Base
             return;
         }
 
-
         $categories = array();
         $cats = array();
         foreach ($settings['gallery'] as $index => $gallery) :
-
             $cats = explode(",", $gallery['filter']);
 
             foreach ($cats as $i => $cat){
@@ -313,15 +339,43 @@ class Imroz_Elementor_Widget_Gallery extends Widget_Base
                     <div class="gallery-wrapper gallery-grid mesonry-list grid-metro3 grid-lg-<?php echo esc_attr($settings['rbt_gallery_columns_for_desktop']); ?> grid-md-<?php echo esc_attr($settings['rbt_gallery_columns_for_laptop']); ?> grid-sm-<?php echo esc_attr($settings['rbt_gallery_columns_for_tablet']); ?> grid-<?php echo esc_attr($settings['rbt_gallery_columns_for_mobile']); ?>" id="animated-thumbnials-rbt-gallery-<?php echo esc_attr($this->get_id()); ?>">
                         <?php
                         $cars = array();
+                        $i = 0;
+                        $the_id = 0;
                         foreach ($settings['gallery'] as $index => $gallery){
                             $cars = explode(",",  $gallery['filter']);
                             $big_image  = (!empty(wp_get_attachment_image_url( $gallery['images']['id'], 'full'))) ? wp_get_attachment_image_url( $gallery['images']['id'], 'full') : Utils::get_placeholder_image_src();
-                            ?>
+                            $link_tag = '';
+                            $the_id++;
+                            $slides = array();
+                            foreach($gallery['carousel'] as $index_c => $attachment){
+
+
+                                $link = $this->get_link_url( $attachment, $settings['gallery'] );
+
+                                if ( $link ) {
+                                    $link_key = 'link_' . $i++;
+                                    //replace null to $attachment['id'] if want to show image title in slide show
+                                    $this->add_lightbox_data_attributes( $link_key, null, $settings['open_lightbox'], $this->get_id().'-'.$the_id );
+                                   
+                                    if ( Plugin::$instance->editor->is_edit_mode() ) {
+                                        $this->add_render_attribute( $link_key, [
+                                            'class' => 'elementor-clickable',
+                                        ] );
+                                    }
+
+                                    $this->add_link_attributes( $link_key, $link );
+                                    
+                                    $link_tag =  ''.$this->get_render_attribute_string( $link_key ).'';
+                                }
+                                array_push($slides,$link_tag);
+                            }
+                           ?>
                             <!-- Start Single Gallery -->
+   
                             <a class="item-portfolio-static gallery masonry_item portfolio-33-33
                             <?php
                             foreach ($cars as $key => $value){echo rbt_slugify($value) . ' ';}
-                            ?>" href="<?php echo esc_url($big_image); ?>">
+                            ?>" <?php echo $slides[0]; ?> >
                                 <div class="portfolio-static">
                                     <div class="thumbnail-inner">
                                         <div class="thumbnail">
@@ -347,6 +401,17 @@ class Imroz_Elementor_Widget_Gallery extends Widget_Base
                                     </div>
                                 </div>
                             </a>
+                            <?php
+                                    foreach($slides as $slide){
+                                        if($slide != $slides[0]){
+                                            ?>
+                                                <div style="display:none">
+                                                    <a <?php echo $slide ?>></a>
+                                                </div>
+                                            <?php
+                                        }
+                                    }
+                            ?>
                             <!-- End Single Gallery -->
                         <?php } ?>
                     </div>
@@ -356,6 +421,36 @@ class Imroz_Elementor_Widget_Gallery extends Widget_Base
         <!-- End Gallery Area  -->
         <?php
     }
+
+    /**
+	 * Retrieve image carousel link URL.
+	 *
+	 * @since 1.0.0
+	 * @access private
+	 *
+	 * @param array $attachment
+	 * @param object $instance
+	 *
+	 * @return array|string|false An array/string containing the attachment URL, or false if no link.
+	 */
+	private function get_link_url( $attachment, $instance ) {
+		if ( 'none' === $instance['link_to'] ) {
+			return false;
+		}
+
+		if ( 'custom' === $instance['link_to'] ) {
+			if ( empty( $instance['link']['url'] ) ) {
+				return false;
+			}
+
+			return $instance['link'];
+		}
+
+		return [
+			'url' => wp_get_attachment_url( $attachment['id'] ),
+		];
+	}
+
 }
 
 Plugin::instance()->widgets_manager->register_widget_type(new Imroz_Elementor_Widget_Gallery());

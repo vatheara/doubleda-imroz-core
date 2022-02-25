@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Imroz Core
  * Plugin URI: Imroz core plugin
- * Description: Description here.
+ * Description: *Don't update! This plugin contain custom essential feature for doubleda 
  * Version: 1.0.3
  * Author: Rainbow-Themes
  * Author URI: http://rainbowit.net/
